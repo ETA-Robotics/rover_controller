@@ -17,7 +17,7 @@ class JoystickSubscriber(Node):
         self.declare_parameter('baud_rate', value=57600)
         self.baud_rate = self.get_parameter('baud_rate').value
 
-        self.declare_parameter('serial_debug', value=True)
+        self.declare_parameter('serial_debug', value=False)
         self.debug_serial_cmds = self.get_parameter('serial_debug').value
         if self.debug_serial_cmds:
             print("Serial debug enabled")
@@ -64,7 +64,7 @@ class JoystickSubscriber(Node):
         self.last_received_time = self.get_clock().now()
 
         # Create a timer that fires every 0.1 seconds (10 Hz)
-        self.timer = self.create_timer(0.1, self.timer_callback)
+        self.timer = self.create_timer(1, self.timer_callback)
 
     def cmd_vel_callback(self, msg):
         self.cmd_vel = msg.data
@@ -92,13 +92,13 @@ class JoystickSubscriber(Node):
 
     def send_command(self):
         # Create a single message string containing all command values
-        cmd_string = f"cmd_vel:{self.cmd_vel},cmd_steer:{self.cmd_steer},cmd_stop:{self.cmd_stop},cmd_cal:{self.cmd_cal}\r"
+        cmd_string = f"{self.cmd_vel},{self.cmd_steer},{self.cmd_stop},{self.cmd_cal}\r"
         
         try:
             # Send the combined message over serial
             self.conn.write(cmd_string.encode("utf-8"))
-            if self.debug_serial_cmds:
-                self.get_logger().info(f"Sent: {cmd_string}")
+            # if self.debug_serial_cmds:
+            self.get_logger().info(f"Sent: {cmd_string}")
 
             # Wait for acknowledgment (max 1 second)
             ack_msg = self.receive_acknowledgment()
@@ -112,7 +112,7 @@ class JoystickSubscriber(Node):
     def receive_acknowledgment(self):
         """Wait for acknowledgment message from the serial device."""
         start_time = time.time()
-        while time.time() - start_time < 0.1:  # Wait for 1 second max
+        while time.time() - start_time < 1:  # Wait for 1 second max
             if self.conn.in_waiting > 0:
                 ack_data = self.conn.readline().decode("utf-8").strip()
                 if self.debug_serial_cmds:
@@ -126,18 +126,18 @@ class JoystickSubscriber(Node):
         try:
             # Example format: STATE,steer1,steer2,motor1_vel,motor2_vel,motor3_vel,motor4_vel
             parts = ack_msg.split(',')
-            if parts[0] == "STATE" and len(parts) == 8:
-                state = parts[1]  # The robot's state
-                steer1 = float(parts[2])
-                steer2 = float(parts[3])
-                motor1_vel = float(parts[4])
-                motor2_vel = float(parts[5])
-                motor3_vel = float(parts[6])
-                motor4_vel = float(parts[7])
+            if len(parts) == 7:
+                state = parts[0]  # The robot's state
+                steer1 = float(parts[1])
+                steer2 = float(parts[2])
+                motor1_vel = str(parts[3])
+                motor2_vel = str(parts[4])
+                motor3_vel = float(parts[5])
+                motor4_vel = float(parts[6])
 
                 # Log the extracted values
-                if (self.debug_serial_cmds):
-                    self.get_logger().info(f"State: {state}, Steer1: {steer1}, Steer2: {steer2}, Motor Velocities: {motor1_vel}, {motor2_vel}, {motor3_vel}, {motor4_vel}")
+                #if (self.debug_serial_cmds):
+                self.get_logger().info(f"State: {state}, Steer1: {steer1}, Steer2: {steer2}, Motor Velocities: {motor1_vel}, {motor2_vel}, {motor3_vel}, {motor4_vel}")
                 
                 # Handle robot's state and update accordingly
                 if (self.debug_serial_cmds):
