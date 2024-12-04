@@ -22,7 +22,8 @@ setup(
     license='TODO: License declaration',
     entry_points={
         'console_scripts': [
-            "joystick_subscriber = rover_controller.joystick_subscriber:main"
+            "joystick_subscriber = rover_controller.joystick_subscriber:main",
+            "rover_joy_translator = rover_controller.rover_joy_translator:main"
         ],
     },
 )
